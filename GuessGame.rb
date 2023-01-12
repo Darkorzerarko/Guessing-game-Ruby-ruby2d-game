@@ -11,7 +11,9 @@ set background: "black"
 MENU_FONT_SIZE = 40
 MENU_PADDING_SIZE = 20
 RAND = Random.new
-current_game_mode = "menu_start"
+GUESSING_NUMBER_RANGE_LOW = 0
+GUESSING_NUMBER_RANGE_HIGH = 99
+$current_game_mode = "menu_start"
 
 MEMORY = MemoryImplementation.new
 MEMORY.read_file_to_memory("memory.txt")
@@ -22,20 +24,11 @@ MEMORY.read_file_to_memory("memory.txt")
 WIDTH_BACKGROUND = get :width
 HEIGHT_BACKGROUND = get :height
 animation_speed = 3
-# funkcja zwracająca pseudo-losową pozycję "y" do tła ekranu, która spełnia zasadę "pozycja%wysokość_czcionki=0"
-def mod_15_num(height_background)
-  loop do
-    random_output = RAND.rand(0..height_background)
-    if random_output % 15 == 0
-      return random_output
-    end
-  end
-end
 
-# funkcja zwracająca pseudo-losową pozycję "x" do tła ekranu, która spełnia zasadę "pozycja%szerokość_czcionki=0"
-def mod_10_num(width_background)
+# funkcja zwracająca pseudo-losową pozycję (x lub y) do tła ekranu, która spełnia zasadę "pozycja%wysokość_czcionki=0"
+def mod_15_num(length)
   loop do
-    random_output = RAND.rand(0..width_background)
+    random_output = RAND.rand(0..length)
     if random_output % 15 == 0
       return random_output
     end
@@ -49,7 +42,7 @@ background_numbers = Array.new
     RAND.rand(0..9),
     color: 'green',
     size: 15,
-    x: mod_10_num(WIDTH_BACKGROUND),
+    x: mod_15_num(WIDTH_BACKGROUND),
     y: mod_15_num(HEIGHT_BACKGROUND)
   ))
 end
@@ -161,6 +154,7 @@ def draw_menu_off
   MENU_BUTTON_EXIT_TEXT.remove
   MENU_BUTTON_EXIT_BG.remove
 end
+
 #--------------------------------------------------------------------
 #-------------obiekty i metody tabeli wyników rozgrywek--------------
 #--------------------------------------------------------------------
@@ -206,10 +200,10 @@ SCOREBOARD_TEXT_BACK_BG = Rectangle.new(
 )
 SCOREBOARD_TEXT_BACK_BG.remove
 #
-ARRAY_OF_SCORES_TO_RENDER = Array.new
-ARRAY_OF_NICKS_TO_RENDER = Array.new
-SCOREBOARD_BG = Rectangle.new
-SCOREBOARD_BG.remove
+$array_of_scores_to_render = Array.new
+$array_of_nicks_to_render = Array.new
+$scoreboard_bg = Rectangle.new
+$scoreboard_bg.remove
 #
 def load_scores_to_render
   scores_array = MEMORY.get_memory
@@ -284,39 +278,40 @@ def load_scores_to_render
 end
 
 def draw_scoreboard_on
-  SCOREBOARD_BG.add
   SCOREBOARD_TEXT.add
   SCOREBOARD_TEXT_BG.add
   SCOREBOARD_TEXT_BACK.add
   SCOREBOARD_TEXT_BACK_BG.add
-  ARRAY_OF_SCORES_TO_RENDER.each do |element|
+
+  $array_of_scores_to_render.each do |element|
     element.add
   end
-  ARRAY_OF_NICKS_TO_RENDER.each do |element|
+  $array_of_nicks_to_render.each do |element|
     element.add
   end
+  $scoreboard_bg.add
 end
 
 def draw_scoreboard_off
-  SCOREBOARD_BG.remove
   SCOREBOARD_TEXT.remove
   SCOREBOARD_TEXT_BG.remove
   SCOREBOARD_TEXT_BACK.remove
   SCOREBOARD_TEXT_BACK_BG.remove
-  ARRAY_OF_SCORES_TO_RENDER.each do |element|
+
+  $array_of_scores_to_render.each do |element|
     element.remove
   end
-  ARRAY_OF_NICKS_TO_RENDER.each do |element|
+  $array_of_nicks_to_render.each do |element|
     element.remove
   end
+  $scoreboard_bg.remove
 end
 
 #--------------------------------------------------------------------
 #-----------------obiekty i metody rozgrywki-------------------------
 #--------------------------------------------------------------------
 GAMEPLAY_BEGIN_TEXT = Text.new(
-  # "Witaj przybyszu, teraz będziesz zgadywać moją wylosowaną liczbę",
-  "Hello stranger, now you will be guessing my number",
+  "Hello stranger, now you will be guessing my number in range #{GUESSING_NUMBER_RANGE_LOW} to #{GUESSING_NUMBER_RANGE_HIGH}",
   x: WIDTH_BACKGROUND / 2,
   y: HEIGHT_BACKGROUND / 5,
   z: 99,
@@ -378,9 +373,11 @@ GAMEPLAY_LOWER_BG = Rectangle.new(
 )
 GAMEPLAY_LOWER_BG.remove
 
-$number_guessed = ""
+$gameplay_input_number = ""
+$guessing_count = 1
+
 $gameplay_input_number_text = Text.new(
-  $number_guessed,
+  $gameplay_input_number,
   y: HEIGHT_BACKGROUND / 2,
   z: 99,
   size: MENU_FONT_SIZE,
@@ -397,51 +394,50 @@ $gameplay_input_number_bg = Rectangle.new(
 )
 $gameplay_input_number_bg.remove
 
-
-$gameplay_text_back = Text.new(
+GAMEPLAY_BUTTON_BACK_TEXT = Text.new(
   "back",
   color: "white",
   size: MENU_FONT_SIZE,
   x: WIDTH_BACKGROUND / 2,
   y: HEIGHT_BACKGROUND / 8 * 7,
   z: 99,
-  )
-$gameplay_text_back.x -= $gameplay_text_back.width / 2
-$gameplay_text_back.remove
+)
+GAMEPLAY_BUTTON_BACK_TEXT.x -= GAMEPLAY_BUTTON_BACK_TEXT.width / 2
+GAMEPLAY_BUTTON_BACK_TEXT.remove
 
-$gameplay_text_back_bg = Rectangle.new(
-  x: $gameplay_text_back.x - MENU_PADDING_SIZE,
-  y: $gameplay_text_back.y - MENU_PADDING_SIZE,
+GAMEPLAY_BUTTON_BACK_BG = Rectangle.new(
+  x: GAMEPLAY_BUTTON_BACK_TEXT.x - MENU_PADDING_SIZE,
+  y: GAMEPLAY_BUTTON_BACK_TEXT.y - MENU_PADDING_SIZE,
   z: 98,
-  width: $gameplay_text_back.width + 2 * MENU_PADDING_SIZE,
-  height: $gameplay_text_back.height + 2 * MENU_PADDING_SIZE,
+  width: GAMEPLAY_BUTTON_BACK_TEXT.width + 2 * MENU_PADDING_SIZE,
+  height: GAMEPLAY_BUTTON_BACK_TEXT.height + 2 * MENU_PADDING_SIZE,
   color: "black",
   opacity: 0.8
 )
-$gameplay_text_back_bg.remove
-
+GAMEPLAY_BUTTON_BACK_BG.remove
 
 # Funkcja odświeżająca input z klawiatury dla zgadywanej liczby
 def update_input_number
-  $gameplay_input_number_text.text = $number_guessed
+  $gameplay_input_number_text.text = $gameplay_input_number
   $gameplay_input_number_text.x = WIDTH_BACKGROUND / 2 - $gameplay_input_number_text.width / 2
   $gameplay_input_number_bg.x = $gameplay_input_number_text.x - MENU_PADDING_SIZE
   $gameplay_input_number_bg.width = $gameplay_input_number_text.width + 2 * MENU_PADDING_SIZE
   nil
 end
 
+# Zmienna, liczba którą należy zgadnąć
 $number_to_guess
 
-def generate_number_for_new_gameplay
-  RAND.rand(0..99)
+# Funkcja, generująca nową liczbę dla każdej nowo rozpoczętej rozgrywki
+def generate_new_gameplay
+  RAND.rand(GUESSING_NUMBER_RANGE_LOW..GUESSING_NUMBER_RANGE_HIGH)
 end
 
 def draw_gameplay_on
   GAMEPLAY_BEGIN_TEXT.add
   GAMEPLAY_BEGIN_TEXT_BG.add
-
-  $gameplay_text_back.add
-  $gameplay_text_back_bg.add
+  GAMEPLAY_BUTTON_BACK_TEXT.add
+  GAMEPLAY_BUTTON_BACK_BG.add
 
   $gameplay_input_number_text.add
   $gameplay_input_number_bg.add
@@ -454,16 +450,15 @@ def draw_gameplay_off
   GAMEPLAY_HIGHER_BG.remove
   GAMEPLAY_LOWER_TEXT.remove
   GAMEPLAY_LOWER_BG.remove
-
-  $gameplay_text_back.remove
-  $gameplay_text_back_bg.remove
+  GAMEPLAY_BUTTON_BACK_TEXT.remove
+  GAMEPLAY_BUTTON_BACK_BG.remove
 
   $gameplay_input_number_text.remove
   $gameplay_input_number_bg.remove
 end
 
 def guess_number
-  number_guessed_int = $number_guessed.to_i
+  number_guessed_int = $gameplay_input_number.to_i
   if number_guessed_int > $number_to_guess
     GAMEPLAY_HIGHER_TEXT.remove
     GAMEPLAY_HIGHER_BG.remove
@@ -475,9 +470,96 @@ def guess_number
     GAMEPLAY_HIGHER_TEXT.add
     GAMEPLAY_HIGHER_BG.add
   else
-    puts "congratulation you guessed correctly"
+    GAMEPLAY_HIGHER_TEXT.remove
+    GAMEPLAY_HIGHER_BG.remove
+    GAMEPLAY_LOWER_TEXT.remove
+    GAMEPLAY_LOWER_BG.remove
+    $current_game_mode = "play_finish"
   end
-  puts number_guessed_int
+end
+
+#--------------------------------------------------------------------
+#-------------Objects and methods of finish-game status--------------
+#--------------------------------------------------------------------
+
+$gameplay_input_nick = ""
+
+GAMEPLAY_CONGRATS_TEXT = Text.new(
+  "",
+  color: "white",
+  size: 70,
+  y: HEIGHT_BACKGROUND / 5,
+  z: 99,
+)
+GAMEPLAY_CONGRATS_TEXT.remove
+GAMEPLAY_CONGRATS_BG = Rectangle.new(
+  y: GAMEPLAY_CONGRATS_TEXT.y - MENU_PADDING_SIZE,
+  z: 98,
+  height: GAMEPLAY_CONGRATS_TEXT.height + 2 * MENU_PADDING_SIZE,
+  color: "black",
+  opacity: 0.8
+)
+GAMEPLAY_CONGRATS_BG.remove
+
+GAMEPLAY_GUESSING_SCORE = Text.new(
+  "",
+  color: "white",
+  size: MENU_FONT_SIZE,
+  y: HEIGHT_BACKGROUND / 5 + 3 * MENU_FONT_SIZE,
+  z: 99,
+)
+GAMEPLAY_GUESSING_SCORE.remove
+
+GAMEPLAY_GUESSING_SCORE_BG = Rectangle.new(
+  y: GAMEPLAY_GUESSING_SCORE.y - MENU_PADDING_SIZE,
+  z: 98,
+  height: GAMEPLAY_GUESSING_SCORE.height + 2 * MENU_PADDING_SIZE,
+  color: "black",
+  opacity: 0.8
+)
+GAMEPLAY_GUESSING_SCORE_BG.remove
+
+$gameplay_input_nick_text = Text.new(
+  $gameplay_input_number,
+  y: HEIGHT_BACKGROUND / 2,
+  z: 99,
+  size: MENU_FONT_SIZE,
+  color: "white",
+)
+$gameplay_input_nick_text.remove
+
+$gameplay_input_nick_bg = Rectangle.new(
+  y: $gameplay_input_nick_text.y - MENU_PADDING_SIZE,
+  z: 98,
+  height: $gameplay_input_nick_text.height + 2 * MENU_PADDING_SIZE,
+  color: "black",
+  opacity: 0.8
+)
+$gameplay_input_nick_bg.remove
+
+def update_input_nick
+  $gameplay_input_nick_text.text = $gameplay_input_nick
+  $gameplay_input_nick_text.x = WIDTH_BACKGROUND / 2 - $gameplay_input_nick_text.width / 2
+  $gameplay_input_nick_bg.x = $gameplay_input_nick_text.x - MENU_PADDING_SIZE
+  $gameplay_input_nick_bg.width = $gameplay_input_nick_text.width + 2 * MENU_PADDING_SIZE
+end
+
+def draw_gameplay_finish_on
+  GAMEPLAY_CONGRATS_TEXT.add
+  GAMEPLAY_CONGRATS_BG.add
+  GAMEPLAY_GUESSING_SCORE.add
+  GAMEPLAY_GUESSING_SCORE_BG.add
+  $gameplay_input_nick_text.add
+  $gameplay_input_nick_bg.add
+end
+
+def draw_gameplay_finish_off
+  GAMEPLAY_CONGRATS_TEXT.remove
+  GAMEPLAY_CONGRATS_BG.remove
+  GAMEPLAY_GUESSING_SCORE.remove
+  GAMEPLAY_GUESSING_SCORE_BG.remove
+  $gameplay_input_nick_text.remove
+  $gameplay_input_nick_bg.remove
 end
 
 #--------------------------------------------------------------------
@@ -498,58 +580,112 @@ end
 #   z: 100
 # )
 
-# Logika input'u klawiatury:
+# Keyboard Shift mode logic
+$shift_mode = false
+
+on :key_held do |event|
+  if event.key == "left shift"
+    $shift_mode = true
+  end
+end
+on :key_up do |event|
+  if event.key == "left shift"
+    $shift_mode = false
+  end
+end
+
+# Keyboard input logic
 on :key_down do |event|
   # puts event.key
   if event.key == "escape"
     close
-  elsif event.key == 'm'
-    current_game_mode = "menu"
+    #   # elsif event.key == 'm'
+    #   #   $current_game_mode = "menu"D
   end
-  if current_game_mode == "menu"
+
+  # For menu mode:
+  if $current_game_mode == "menu"
     if event.key == 'p'
-      current_game_mode = "play"
-      $number_to_guess = generate_number_for_new_gameplay
-      $number_guessed = ""
-      puts $number_to_guess
+      $current_game_mode = "play"
+      $number_to_guess = generate_new_gameplay
+      $gameplay_input_number = ""
+      $guessing_count = 1
+#-----------------------------------------------------
+#-----------------|-----------------------------------
+#-----------------|-----------------------------------
+#-----Cheat only \|/----------------------------------
+#-----------------------------------------------------
+#       puts $number_to_guess
+#-----------------------------------------------------
+#-----------------------------------------------------
+#-----------------------------------------------------
+#-----------------------------------------------------
+#-----------------------------------------------------
+    end
+    if event.key == "escape"
+      close
     end
   end
-  if current_game_mode == "play"
-    if event.key == '1'
-      $number_guessed += "1"
+  # For gameplay mode:
+  if $current_game_mode == "play"
+    if %w[1 2 3 4 5 6 7 8 9 0].include? event.key
+      $gameplay_input_number += event.key
       update_input_number
-    elsif event.key == '2'
-      $number_guessed += "2"
-      update_input_number
-    elsif event.key == '3'
-      $number_guessed += "3"
-      update_input_number
-    elsif event.key == '4'
-      $number_guessed += "4"
-      update_input_number
-    elsif event.key == '5'
-      $number_guessed += "5"
-      update_input_number
-    elsif event.key == '6'
-      $number_guessed += "6"
-      update_input_number
-    elsif event.key == '7'
-      $number_guessed += "8"
-      update_input_number
-    elsif event.key == '8'
-      $number_guessed += "8"
-      update_input_number
-    elsif event.key == '9'
-      $number_guessed += "9"
-      update_input_number
-    elsif event.key == '0'
-      $number_guessed += "0"
+    elsif event.key == "backspace"
+      $gameplay_input_number = $gameplay_input_number.chop
       update_input_number
     elsif event.key == "return"
       guess_number
-      $number_guessed = ""
-      $gameplay_input_number_text.text = $number_guessed
+      $gameplay_input_number = ""
+      $gameplay_input_number_text.text = $gameplay_input_number
       $gameplay_input_number_bg.width = 0
+      GAMEPLAY_CONGRATS_TEXT.text = "Congratulation my number was: #{$number_to_guess}"
+      GAMEPLAY_CONGRATS_TEXT.x = WIDTH_BACKGROUND / 2 - GAMEPLAY_CONGRATS_TEXT.width / 2
+      GAMEPLAY_CONGRATS_BG.x = GAMEPLAY_CONGRATS_TEXT.x - MENU_PADDING_SIZE
+      GAMEPLAY_CONGRATS_BG.width = GAMEPLAY_CONGRATS_TEXT.width + 2 * MENU_PADDING_SIZE
+      GAMEPLAY_GUESSING_SCORE.text = "You successfully guessed in: #{$guessing_count} #{$guessing_count > 1 ? "tries" : "try"}"
+      GAMEPLAY_GUESSING_SCORE.x = WIDTH_BACKGROUND / 2 - GAMEPLAY_GUESSING_SCORE.width / 2
+      GAMEPLAY_GUESSING_SCORE_BG.x = GAMEPLAY_GUESSING_SCORE.x - MENU_PADDING_SIZE
+      GAMEPLAY_GUESSING_SCORE_BG.width = GAMEPLAY_GUESSING_SCORE.width + 2 * MENU_PADDING_SIZE
+      $guessing_count = $guessing_count + 1
+    end
+  end
+  # For saving player score mode
+  if $current_game_mode == "play_finish"
+    if event.key == "return"
+      if $gameplay_input_nick.length > 0
+        MENU_BUTTON_PLAY_TEXT.text = "Play again?"
+        MENU_BUTTON_PLAY_TEXT.x = WIDTH_BACKGROUND/2 - MENU_BUTTON_PLAY_TEXT.width / 2
+        MENU_BUTTON_PLAY_BG.x = MENU_BUTTON_PLAY_TEXT.x - MENU_PADDING_SIZE
+        MENU_BUTTON_PLAY_BG.width = MENU_BUTTON_PLAY_TEXT.width + 2 * MENU_PADDING_SIZE
+        MEMORY.add_user_score(GameScore.new($gameplay_input_nick, $guessing_count-1))
+        MEMORY.sort_memory
+        MEMORY.save_memory("memory.txt")
+        $gameplay_input_nick=""
+        update_input_nick
+        $current_game_mode = "menu"
+      end
+    else
+      if $gameplay_input_nick.length < 20
+        if $shift_mode
+          if %w[a b c d e f g h i j k l m n o p q r s t u v w x y z - = . 1 2 3 4 5 6 7 8 9 0 ].include? event.key
+            $gameplay_input_nick += event.key.upcase!
+            update_input_nick
+          end
+        else
+          if event.key == "space"
+            $gameplay_input_nick += " "
+            update_input_nick
+          elsif %w[a b c d e f g h i j k l m n o p q r s t u v w x y z - = . 1 2 3 4 5 6 7 8 9 0 ].include? event.key
+            $gameplay_input_nick += event.key
+            update_input_nick
+          end
+        end
+      end
+      if event.key == "backspace"
+        $gameplay_input_nick = $gameplay_input_nick.chop
+        update_input_nick
+      end
     end
   end
 end
@@ -566,25 +702,26 @@ end
 
 on :mouse_down do |event|
   # -dla menu
-  if current_game_mode == "menu"
+  if $current_game_mode == "menu"
     if mouse_pos_in_range_x_y(MENU_BUTTON_EXIT_BG, event.x, event.y)
       close
     elsif mouse_pos_in_range_x_y(MENU_BUTTON_PLAY_BG, event.x, event.y)
-      current_game_mode = "play"
-      $number_to_guess = generate_number_for_new_gameplay
-      $number_guessed = ""
+      $current_game_mode = "play"
+      $number_to_guess = generate_new_gameplay
+      $gameplay_input_number = ""
+      $guessing_count = 1
       puts $number_to_guess
     elsif mouse_pos_in_range_x_y(MENU_BUTTON_SCOREBOARD_BG, event.x, event.y)
-      current_game_mode = "scoreboard"
-      ARRAY_OF_NICKS_TO_RENDER, ARRAY_OF_SCORES_TO_RENDER, SCOREBOARD_BG = load_scores_to_render
+      $current_game_mode = "scoreboard"
+      $array_of_nicks_to_render, $array_of_scores_to_render, $scoreboard_bg = load_scores_to_render
     end
-  elsif current_game_mode == "scoreboard"
+  elsif $current_game_mode == "scoreboard"
     if mouse_pos_in_range_x_y(SCOREBOARD_TEXT_BACK_BG, event.x, event.y)
-      current_game_mode = "menu"
+      $current_game_mode = "menu"
     end
-  elsif current_game_mode == "play"
-    if mouse_pos_in_range_x_y($gameplay_text_back_bg, event.x, event.y)
-      current_game_mode = "menu"
+  elsif $current_game_mode == "play"
+    if mouse_pos_in_range_x_y(GAMEPLAY_BUTTON_BACK_BG, event.x, event.y)
+      $current_game_mode = "menu"
     end
   end
 
@@ -593,32 +730,33 @@ end
 # tick = zmienna odświeżania gry
 tick = 0
 update do
-  # Animacja tła (pokazywanie liczb w losowych miejcach)
+
+  # Animacja tła (przesuwanie całego tła w dół)
   background_numbers.each do |value|
     value.y += animation_speed
     if value.y >= HEIGHT_BACKGROUND
       value.y = 0
     end
   end
-
-  40.times do
+  # Animacja tła (pokazywanie liczb z losowych miejsc)
+  30.times do
     random_number_background = RAND.rand(0..2500)
     background_numbers[random_number_background].add
   end
   # Zanikanie losowych liczb z tła (aktywowane po ok 3 sekundach)
   if tick >= 90
-    40.times do
+    30.times do
       random_number_background = RAND.rand(0..2500)
       background_numbers[random_number_background].remove
     end
   end
 
   # Obiekty i logika "menu"
-  if current_game_mode == "menu_start"
+  if $current_game_mode == "menu_start"
     # Pojawiają się po ok 3 sek
     if tick >= 100
       if MENU_GAME_NAME_TEXT.color.opacity > 0.8
-        current_game_mode = "menu"
+        $current_game_mode = "menu"
       end
       MENU_GAME_NAME_TEXT.color.opacity += 0.03
       MENU_GAME_NAME_TEXT_BG.color.opacity += 0.03
@@ -630,7 +768,7 @@ update do
       MENU_BUTTON_EXIT_BG.color.opacity += 0.03
     end
   end
-  if current_game_mode == "menu"
+  if $current_game_mode == "menu"
     MENU_GAME_NAME_TEXT.color.opacity = 1
     MENU_GAME_NAME_TEXT_BG.color.opacity = 0.8
     MENU_BUTTON_PLAY_TEXT.color.opacity = 1
@@ -643,25 +781,29 @@ update do
     draw_menu_on
     draw_scoreboard_off
     draw_gameplay_off
-
+    draw_gameplay_finish_off
   end
-  if current_game_mode == "play"
+  if $current_game_mode == "play"
     draw_menu_off
     draw_scoreboard_off
     draw_gameplay_on
+    draw_gameplay_finish_off
     # MEMORY.add_user_score(GameScore.new("twoja_stara_to_gitara", 12))
     # MEMORY.sort_memory
     # MEMORY.save_memory("memory.txt")
   end
-  if current_game_mode == "scoreboard"
+  if $current_game_mode == "play_finish"
+    draw_menu_off
+    draw_scoreboard_off
+    draw_gameplay_off
+    draw_gameplay_finish_on
+  end
+  if $current_game_mode == "scoreboard"
     draw_menu_off
     draw_scoreboard_on
     draw_gameplay_off
+    draw_gameplay_finish_off
   end
   tick += 1
 end
 show
-
-
-
-
